@@ -1,0 +1,38 @@
+#include <Arduino.h>
+
+#define LORA_RX 4 //Change these pins accordingly
+#define LORA_TX 5 //Change these pins accordingly
+
+HardwareSerial loraSerial(1);
+uint8_t buttonState;
+uint8_t lastButtonState = 0;
+uint8_t lastPressTime;
+
+void setup() {
+  loraSerial.begin(115200, SERIAL_8N1, LORA_RX, LORA_TX);
+  pinMode(2, INPUT_PULLUP);
+
+  delay(250);
+  loraSerial.write("AT+ADDRESS=0\r\n");
+  delay(250);
+  loraSerial.write("AT+NETWORKID=18\r\n");
+  delay(250);
+  loraSerial.write("AT+BAND=865000000\r\n");
+}
+
+void loop() {
+  static bool doorState = false;
+  uint8_t currentReading = digitalRead(2);
+
+  if (lastButtonState != currentReading) {
+    if (currentReading == LOW) {
+      delay(150);
+      if (currentReading == LOW) {
+        doorState = !doorState;
+        loraSerial.print("AT+SEND=2,1," + String(doorState) + "\r\n");
+      }
+    }
+  }
+
+  lastButtonState = currentReading;
+}
