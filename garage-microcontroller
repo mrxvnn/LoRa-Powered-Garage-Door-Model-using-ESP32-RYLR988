@@ -1,0 +1,52 @@
+#include <ESP32Servo.h>
+
+Servo S1;
+
+#define LORA_RX 26 //Change these pins accordingly
+#define LORA_TX 27 //Change these pins accordingly
+#define servoPin 14 //Change these pins accordingly
+HardwareSerial loraSerial(1);
+
+void driveServo(int a) {
+  static int position = 40;
+
+  if (a > position) {
+    while (a > position) {
+      S1.write(position++);
+      delay(10);
+    }
+  } else if (a < position) {
+    while (a < position) {
+      S1.write(position--);
+      delay(10);
+    }
+  }
+}
+void setup() {
+  loraSerial.begin(115200, SERIAL_8N1, LORA_RX, LORA_TX);
+
+  ESP32PWM::allocateTimer(0);
+  ESP32PWM::allocateTimer(1);
+  ESP32PWM::allocateTimer(2);
+  ESP32PWM::allocateTimer(3);
+  S1.setPeriodHertz(50);
+  S1.attach(servoPin, 500, 2500);
+  S1.write(40);
+
+  delay(250);
+  loraSerial.write("AT+ADDRESS=2\r\n");
+  delay(250);
+  loraSerial.write("AT+NETWORKID=18\r\n");
+  delay(250);
+  loraSerial.write("AT+BAND=865000000\r\n"); //Please change the band according to your country laws
+}
+
+void loop() {
+  if (loraSerial.available()) {
+    String data = loraSerial.readStringUntil('\n');
+    data = data.substring(9, 10);
+
+    if (data == "1") driveServo(100);
+    else if (data = "0") driveServo(40);
+  }
+}
